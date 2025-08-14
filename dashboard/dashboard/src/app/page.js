@@ -1,103 +1,108 @@
-import Image from "next/image";
+"use client";
+import React, { useState } from "react";
+import dynamic from "next/dynamic";
+import Link from "next/link";
+import "leaflet/dist/leaflet.css";
+
+// Dynamically import MapComponent
+const MapComponent = dynamic(() => import("./MapComponent"), { ssr: false });
+
+const CARD_DATA = [
+	{
+		label: "Total Flagged Billboards",
+		value: 123,
+		color: "bg-blue-500 text-blue-100",
+		accent: "text-blue-600",
+	},
+	{
+		label: "Pending Review",
+		value: 45,
+		color: "bg-yellow-400 text-yellow-50",
+		accent: "text-yellow-600",
+	},
+	{
+		label: "Action Taken",
+		value: 67,
+		color: "bg-green-500 text-green-100",
+		accent: "text-green-600",
+	},
+];
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.js
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+	const [location, setLocation] = useState("");
+	const [coords, setCoords] = useState([12.9716, 77.5946]); // Bangalore default
+	const [loading, setLoading] = useState(false);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
-  );
+	const handleSearch = async (e) => {
+		e.preventDefault();
+		if (!location) return;
+		setLoading(true);
+		try {
+			const res = await fetch(
+				`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(location)}`
+			);
+			const data = await res.json();
+			if (data && data.length > 0) {
+				setCoords([parseFloat(data[0].lat), parseFloat(data[0].lon)]);
+			}
+		} catch (err) {
+			// Handle error (optional)
+		}
+		setLoading(false);
+	};
+
+	return (
+		<main className="min-h-screen bg-gray-50 px-4 py-8">
+			{/* Header */}
+			<header className="mb-8">
+				<h1 className="text-3xl font-bold text-gray-800">FlagRush Dashboard</h1>
+			</header>
+
+			{/* Summary Cards */}
+			<section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+				{CARD_DATA.map((card) => (
+					<div
+						key={card.label}
+						className={`rounded-xl shadow-lg p-6 flex flex-col items-center ${card.color} transition-all duration-300 ease-in-out hover:scale-105 hover:shadow-2xl`}
+					>
+						<span className="text-lg font-medium text-gray-900 mb-2">{card.label}</span>
+						<span className={`text-3xl font-bold ${card.accent} drop-shadow-sm`}>{card.value}</span>
+					</div>
+				))}
+			</section>
+
+			{/* Location Search */}
+			<section className="bg-white shadow-xl rounded-2xl p-6 flex flex-col items-center mb-8">
+				<form className="w-full max-w-md mb-6 flex gap-2" onSubmit={handleSearch}>
+					<input
+						type="text"
+						placeholder="Search city..."
+						value={location}
+						onChange={(e) => setLocation(e.target.value)}
+						className="flex-1 px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 text-black"
+					/>
+					<button
+						type="submit"
+						disabled={loading}
+						className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg transition-all duration-300 ease-in-out"
+					>
+						{loading ? "Searching..." : "Search"}
+					</button>
+				</form>
+				<h2 className="text-xl font-semibold text-gray-700 mb-4">Billboard Heatmap</h2>
+				<div className="w-full h-[400px] max-w-3xl mx-auto rounded-lg overflow-hidden border border-gray-200">
+					<MapComponent coords={coords} />
+				</div>
+			</section>
+
+			{/* View All Reports Button */}
+			<div className="flex justify-center">
+				<Link href="/reports">
+					<button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition-all duration-300 ease-in-out">
+						View All Reports
+					</button>
+				</Link>
+			</div>
+		</main>
+	);
 }
