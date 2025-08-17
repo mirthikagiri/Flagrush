@@ -1,21 +1,26 @@
 "use client";
 import React from "react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
 
-// Fix default marker icon for Leaflet in React
-const icon = L.icon({
-  iconUrl: typeof window !== "undefined" ? require("leaflet/dist/images/marker-icon.png") : "",
-  iconRetinaUrl: typeof window !== "undefined" ? require("leaflet/dist/images/marker-icon-2x.png") : "",
-  shadowUrl: typeof window !== "undefined" ? require("leaflet/dist/images/marker-shadow.png") : "",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
+import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
+import markerIcon from "leaflet/dist/images/marker-icon.png";
+import markerShadow from "leaflet/dist/images/marker-shadow.png";
 
-export default function MapComponent({ coords }) {
+let icon = undefined;
+if (typeof window !== "undefined") {
+  const L = require("leaflet");
+  icon = L.icon({
+    iconUrl: markerIcon,
+    iconRetinaUrl: markerIcon2x,
+    shadowUrl: markerShadow,
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41],
+  });
+}
+
+export default function MapComponent({ coords, cityName }) {
   return (
     <MapContainer
       center={coords}
@@ -27,9 +32,11 @@ export default function MapComponent({ coords }) {
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         attribution="&copy; OpenStreetMap contributors"
       />
-      <Marker position={coords} icon={icon}>
-        <Popup>Flagged Billboard Example</Popup>
-      </Marker>
+      {icon && (
+        <Marker position={coords} icon={icon}>
+          <Popup>{cityName ? `${cityName} (Flagged Billboard Example)` : "Flagged Billboard Example"}</Popup>
+        </Marker>
+      )}
     </MapContainer>
   );
 }
