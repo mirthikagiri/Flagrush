@@ -1,99 +1,137 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import jsPDF from "jspdf";
-import "jspdf-autotable";
-const BASE = "http://localhost:8001";
+
+const BASE_URL = "http://localhost:8001"; // Your FastAPI server
 
 export default function FlaggedReportsPage() {
   const [reports, setReports] = useState([]);
+  const [form, setForm] = useState({
+    billboard_id: "",
+    report_id: "",
+    location: "",
+    date: "",
+    reason: "",
+    status: "",
+    image: null,
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [modal, setModal] = useState(null);
-  const [comment, setComment] = useState("");
+  const [success, setSuccess] = useState("");
 
-  useEffect(() => { fetchReports(); }, []);
-  const fetchReports = async () => {
+  // Fetch reports on mount
+  useEffect(() => {
     setLoading(true);
-    try { setReports(await axios.get(`${BASE}/flagged_reports`).then(res => res.data)); } catch { setError("Failed to load reports"); }
-    setLoading(false);
+    setError("");
+    axios.get(`${BASE_URL}/reports/`)
+      .then(res => setReports(res.data))
+      .catch(() => setError("Failed to load reports"))
+      .finally(() => setLoading(false));
+  }, []);
+
+  // Handle input change
+  const handleChange = (e) => {
+    const { name, value, files } = e.target;
+    setForm((f) => ({
+      ...f,
+      [name]: files ? files[0] : value,
+    }));
   };
 
-  const updateStatus = async (id, status) => {
+  // Handle form submit
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
     setLoading(true);
-    try {
-      await axios.put(`${BASE}/flagged_reports/${id}`, { status });
-      fetchReports();
-    } catch { setError("Failed to update status"); }
-    setLoading(false);
-  };
 
-  const addComment = async (id) => {
-    setLoading(true);
-    try {
-      await axios.post(`${BASE}/flagged_reports/${id}/comments`, { comment });
-      setComment("");
-      fetchReports();
-    } catch { setError("Failed to add comment"); }
-    setLoading(false);
-  };
-
-  const exportPDF = () => {
-    const doc = new jsPDF();
-    doc.text("Flagged Reports", 14, 16);
-    doc.autoTable({
-      head: [["Billboard", "Location", "Reason", "Status"]],
-      body: reports.map(r => [r.billboard_id, r.location, r.reason, r.status]),
+    // Setup multipart form data
+    const formData = new FormData();
+    Object.entries(form).forEach(([key, value]) => {
+      if (value) formData.append(key, value);
     });
-    doc.save("flagged_reports.pdf");
+
+    try {
+      await axios.post(`${BASE_URL}/reports/`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setSuccess("Report submitted successfully.");
+      setForm({
+        billboard_id: "",
+        report_id: "",
+        location: "",
+        date: "",
+        reason: "",
+        status: "",
+        image: null,
+      });
+      fetchReports();
+    } catch {
+      setError("Failed to submit report");
+    }
+    setLoading(false);
   };
 
   return (
-    <div className="p-6">
+    <div className="p-6 max-w-6xl mx-auto">
       <h2 className="text-xl font-bold mb-4">Flagged Reports</h2>
-      <button onClick={exportPDF} className="bg-green-600 text-white px-4 py-2 rounded mb-4">Export PDF</button>
+      <form
+        className="mb-6 grid grid-cols-3 gap-4 bg-black p-4 rounded"
+        onSubmit={handleSubmit}
+        encType="multipart/form-data"
+      >
+        <input name="billboard_id" value={form.billboard_id} onChange={handleChange} placeholder="Billboard ID" className="p-2 border rounded" required />
+        <input name="report_id" value={form.report_id} onChange={handleChange} placeholder="Report ID" className="p-2 border rounded" required />
+        <input name="location" value={form.location} onChange={handleChange} placeholder="Location" className="p-2 border rounded" required />
+        <input name="date" type="date" value={form.date} onChange={handleChange} placeholder="Date" className="p-2 border rounded" required />
+        <input name="reason" value={form.reason} onChange={handleChange} placeholder="Reason" className="p-2 border rounded" required />
+        <input name="status" value={form.status} onChange={handleChange} placeholder="Status" className="p-2 border rounded" required />
+        <input name="image" type="file" accept="image/*" onChange={handleChange} className="p-2 border rounded col-span-3" />
+        <button type="submit" className="col-span-3 bg-green-600 text-white px-4 py-2 rounded">
+          Submit Flagged Report
+        </button>
+      </form>
       {loading && <div>Loading...</div>}
-      {error && <div className="text-red-600">{error}</div>}
-      <table className="w-full border mb-4">
+      {error && <div className="text-red-500 mb-2">{error}</div>}
+      {success && <div className="text-green-500 mb-2">{success}</div>}
+
+      <table className="w-full border mt-4">
         <thead>
-          <tr>
-            <th>Billboard</th><th>Location</th><th>Reason</th><th>Status</th><th>Actions</th>
+          <tr className="bg-gray-100">
+            <th className="p-2 text-black font-bold">Billboard</th>
+            <th className="p-2 text-black font-bold">Report ID</th>
+            <th className="p-2 text-black font-bold">Location</th>
+            <th className="p-2 text-black font-bold">Date</th>
+            <th className="p-2 text-black font-bold">Reason</th>
+            <th className="p-2 text-black font-bold">Status</th>
+            <th className="p-2 text-black font-bold">Image</th>
           </tr>
         </thead>
         <tbody>
-          {reports.map(r => (
-            <tr key={r._id}>
-              <td>{r.billboard_id}</td><td>{r.location}</td><td>{r.reason}</td><td>{r.status}</td>
-              <td>
-                <button onClick={() => setModal(r)} className="text-blue-600">View</button>
-                <button onClick={() => updateStatus(r._id, "Resolved")} className="ml-2 text-green-600">Resolve</button>
+          {loading ? (
+            <tr><td colSpan={7} className="p-4 text-center text-gray-500">Loading...</td></tr>
+          ) : error ? (
+            <tr><td colSpan={7} className="p-4 text-center text-red-500">{error}</td></tr>
+          ) : reports.length === 0 ? (
+            <tr><td colSpan={7} className="p-4 text-center text-gray-400">No reports found.</td></tr>
+          ) : reports.map((r) => (
+            <tr key={r.id} className="border-b">
+              <td className="p-2">{r.billboard_id}</td>
+              <td className="p-2">{r.report_id}</td>
+              <td className="p-2">{r.location}</td>
+              <td className="p-2">{r.date}</td>
+              <td className="p-2">{r.reason}</td>
+              <td className="p-2">{r.status}</td>
+              <td className="p-2">
+                {r.image_path 
+                  ? <img src={`http://localhost:8001/${r.image_path.replace("\\","/")}`} alt="Flag" className="w-16 h-16 object-cover" />
+                  : "No image"}
               </td>
             </tr>
           ))}
         </tbody>
       </table>
-      {modal && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded shadow-lg w-96">
-            <h3 className="font-bold mb-2">Report Details</h3>
-            <div><b>Billboard:</b> {modal.billboard_id}</div>
-            <div><b>Location:</b> {modal.location}</div>
-            <div><b>Reason:</b> {modal.reason}</div>
-            <div><b>Status:</b> {modal.status}</div>
-            <div className="mt-2">
-              <b>Comments:</b>
-              <ul className="list-disc ml-4">
-                {(modal.comments || []).map((c, i) => <li key={i}>{c}</li>)}
-              </ul>
-            </div>
-            <form onSubmit={e => { e.preventDefault(); addComment(modal._id); }} className="mt-2 flex gap-2">
-              <input value={comment} onChange={e => setComment(e.target.value)} placeholder="Add comment" className="border p-2 rounded w-full" />
-              <button type="submit" className="bg-blue-600 text-white px-2 rounded">Add</button>
-            </form>
-            <button onClick={() => setModal(null)} className="mt-4 text-red-600">Close</button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
+

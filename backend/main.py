@@ -4,6 +4,10 @@ from pydantic import BaseModel, Field
 from typing import Optional
 from bson import ObjectId
 import os
+from fastapi import FastAPI, UploadFile, File, Form
+import shutil
+
+
 from fastapi.middleware.cors import CORSMiddleware
 app = FastAPI()
 app.add_middleware(
@@ -37,6 +41,28 @@ def permit_helper(permit) -> dict:
         "permit_status": permit["permit_status"],
         "license_number": permit["license_number"],
     }
+report_collection = database.get_collection("reports")
+
+def report_helper(report) -> dict:
+    return {
+        "id": str(report["_id"]),
+        "billboard_id": report["billboard_id"],
+        "report_id": report["report_id"],
+        "location": report["location"],
+        "date": report["date"],
+        "reason": report["reason"],
+        "status": report["status"],
+        "image_path": report.get("image_path"),  # store image path if uploaded
+    }
+class ReportModel(BaseModel):
+    billboard_id: str = Field(...)
+    report_id: str = Field(...)
+    location: str = Field(...)
+    date: str = Field(..., pattern=r"^\d{4}-\d{2}-\d{2}$")
+    reason: str = Field(...)
+    status: str = Field(...)
+    image_path: str = Field(None, description="Path or URL to the uploaded image")
+    # Add any other fields your frontend expects
 
 # Pydantic model for input validation
 class PermitModel(BaseModel):
@@ -76,3 +102,42 @@ async def get_permit(permit_id: str):
 # All code blocks are properly indented and use async/await
 # Add update/delete endpoints as needed
 
+@app.post("/reports/", response_description="Add a flagged report")
+async def add_report(
+    billboard_id: str = Form(...),
+    report_id: str = Form(...),
+    location: str = Form(...),
+    date: str = Form(...),
+    reason: str = Form(...),
+    status: str = Form(...),
+    image: Optional[UploadFile] = File(None)
+):
+    # Handle image upload
+    image_path = None
+    if image:
+        upload_dir = "uploads/"
+        os.makedirs(upload_dir, exist_ok=True)
+        file_location = os.path.join(upload_dir, image.filename)
+        with open(file_location, "wb") as buffer:
+            shutil.copyfileobj(image.file, buffer)
+        image_path = file_location
+
+    report_dict = {
+        "billboard_id": billboard_id,
+        "report_id": report_id,
+        "location": location,
+        "date": date,
+        "reason": reason,
+        "status": status,
+        "image_path": image_path
+    }
+
+    result = await report_collection.insert_one(report_dict)
+    new_report = await report_collection.find_one({"_id": result.inserted_id})
+    return report_helper(new_report)
+@app.get("/reports/", response_description="List all reports")
+async def list_reports():
+    reports = []
+    async for report in report_collection.find():
+        reports.append(report_helper(report))
+    return reports

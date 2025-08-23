@@ -12,11 +12,13 @@ const defaultIcon = L.icon({
   shadowSize: [41, 41]
 });
 
-export default function LeafletMap({ reports }) {
+// Use 'markers' as the prop!
+export default function LeafletMap({ markers = [] }) {
   const mapRef = useRef(null);
   const leafletMap = useRef(null);
   const markersRef = useRef([]);
 
+  // Create the Leaflet map on mount
   useEffect(() => {
     if (!mapRef.current || leafletMap.current) return;
     leafletMap.current = L.map(mapRef.current, {
@@ -27,38 +29,52 @@ export default function LeafletMap({ reports }) {
       zoomControl: true,
       attributionControl: true,
     });
+
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "&copy; OpenStreetMap contributors"
+      attribution: "© OpenStreetMap contributors"
     }).addTo(leafletMap.current);
   }, []);
 
+  // Add or update markers when the list changes
   useEffect(() => {
     if (!leafletMap.current) return;
+
     // Remove old markers
     markersRef.current.forEach(marker => marker.remove());
     markersRef.current = [];
-    // Add new markers
-    reports.forEach(report => {
+
+    // Defensive: Always use array
+    (Array.isArray(markers) ? markers : []).forEach(report => {
       if (report.lat && report.lng) {
         const marker = L.marker([report.lat, report.lng], { icon: defaultIcon });
-        let popupContent = `<div style='font-family:Inter,sans-serif;min-width:180px;'>`;
-        popupContent += `<div style='font-weight:600;color:#2563eb;'>${report.location}</div>`;
-        popupContent += `<div style='color:#374151;font-size:13px;'>${report.violationType}</div>`;
-        popupContent += `<div style='margin:4px 0;color:#6b7280;font-size:12px;'>${report.status} &bull; ${report.date}</div>`;
-        if (report.imageUrl) {
-          popupContent += `<img src='${report.imageUrl}' alt='Billboard' style='width:80px;height:60px;object-fit:cover;border-radius:6px;border:1px solid #e5e7eb;margin-top:4px;' />`;
-        } else {
-          popupContent += `<span style='display:inline-block;width:32px;height:32px;background:#e5e7eb;border-radius:50%;margin-top:4px;'><svg width='24' height='24' fill='none' stroke='#6b7280' stroke-width='2' viewBox='0 0 24 24'><path d='M12 2L15 8H9L12 2ZM12 22V8'/><circle cx='12' cy='16' r='2'/></svg></span>`;
-        }
-        popupContent += `</div>`;
+
+        const popupContent = `
+          <div style="font-weight:bold;">${report.location || "Unknown Location"}</div>
+          <div>${report.violationType || report.reason || ""}</div>
+          <div>${report.date || ""}</div>
+        `;
+
         marker.bindPopup(popupContent);
         marker.addTo(leafletMap.current);
         markersRef.current.push(marker);
       }
     });
-  }, [reports]);
+  }, [markers]);
+
+  // Clean up map on component unmount
+  useEffect(() => {
+    return () => {
+      if (leafletMap.current) {
+        leafletMap.current.remove();
+        leafletMap.current = null;
+      }
+    };
+  }, []);
 
   return (
-    <div ref={mapRef} className="w-full h-96 rounded-lg shadow-sm border border-gray-200" />
+    <div
+      ref={mapRef}
+      style={{ width: "100%", height: "300px", minHeight: "250px", borderRadius: "12px" }}
+    />
   );
 }

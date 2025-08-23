@@ -1,55 +1,44 @@
 "use client";
 import React, { useState } from "react";
 import dynamic from "next/dynamic";
+import axios from "axios";
 const LeafletMap = dynamic(() => import("./components/LeafletMap"), { ssr: false });
 
-// Dummy data for reports
-const reports = [
-	{
-		id: "RPT-001",
-		location: "MG Road, Bangalore",
-		violationType: "Unlicensed Billboard",
-		date: "2025-08-19",
-		status: "Pending",
-		imageUrl: "https://via.placeholder.com/80x60.png?text=Billboard",
-		lat: 12.975, lng: 77.605
-	},
-	{
-		id: "RPT-002",
-		location: "Anna Salai, Chennai",
-		violationType: "Obstructive Placement",
-		date: "2025-08-18",
-		status: "Reviewed",
-		imageUrl: "https://via.placeholder.com/80x60.png?text=Billboard",
-		lat: 13.0827, lng: 80.2707
-	},
-	{
-		id: "RPT-003",
-		location: "Connaught Place, Delhi",
-		violationType: "Expired Permit",
-		date: "2025-08-17",
-		status: "Resolved",
-		imageUrl: "https://via.placeholder.com/80x60.png?text=Billboard",
-		lat: 28.6139, lng: 77.2090
-	}
-];
-
-const summary = [
-	{ label: "Total Reports", value: reports.length },
-	{ label: "Violation Categories", value: "3" },
-	{ label: "Recent Reports", value: "2" }
-];
 
 export default function Dashboard() {
+
+	const [reports, setReports] = useState([]);
 	const [search, setSearch] = useState("");
 	const [filter, setFilter] = useState("");
+	const [loading, setLoading] = useState(false);
+	const [error, setError] = useState("");
 
-	// Filtered reports
+	// Fetch reports from backend on mount
+	React.useEffect(() => {
+		setLoading(true);
+		setError("");
+		axios.get("http://localhost:8001/reports/")
+			.then(res => setReports(res.data))
+			.catch(() => setError("Failed to load reports"))
+			.finally(() => setLoading(false));
+	}, []);
+
+	// Filtered reports for table/search/filter
 	const filteredReports = reports.filter(r =>
-		(r.location.toLowerCase().includes(search.toLowerCase()) ||
-			r.violationType.toLowerCase().includes(search.toLowerCase())) &&
+		(r.location?.toLowerCase().includes(search.toLowerCase()) ||
+			r.violationType?.toLowerCase().includes(search.toLowerCase())) &&
 		(filter ? r.status === filter : true)
 	);
+
+	// Only valid flagged billboards for map
+	const mapMarkers = filteredReports.filter(r => r.lat && r.lng);
+
+	// Summary cards
+	const summary = [
+		{ label: "Total Reports", value: reports.length },
+		{ label: "Violation Categories", value: new Set(reports.map(r => r.violationType)).size },
+		{ label: "Recent Reports", value: reports.filter(r => r.date && (new Date() - new Date(r.date)) < 7 * 24 * 60 * 60 * 1000).length }
+	];
 
 	return (
 		<div className="min-h-screen bg-gray-50 text-gray-900 font-sans flex">
@@ -114,57 +103,69 @@ export default function Dashboard() {
 								<option value="Pending">Pending</option>
 								<option value="Reviewed">Reviewed</option>
 								<option value="Resolved">Resolved</option>
+								<option value="Flagged">Flagged</option>
 							</select>
 						</div>
-						<table className="w-full text-left font-sans">
-							<thead>
-								<tr className="bg-gray-100 text-gray-700">
-									<th className="p-3 font-medium">Report ID</th>
-									<th className="p-3 font-medium">Location</th>
-									<th className="p-3 font-medium">Violation Type</th>
-									<th className="p-3 font-medium">Date</th>
-									<th className="p-3 font-medium">Status</th>
-									<th className="p-3 font-medium">Image</th>
-								</tr>
-							</thead>
-							<tbody>
-								{filteredReports.map(report => (
-									<tr key={report.id} className="border-b hover:bg-blue-50 transition-all">
-										<td className="p-3 font-mono text-sm">{report.id}</td>
-										<td className="p-3 text-gray-900">{report.location}</td>
-										<td className="p-3 text-gray-700">{report.violationType}</td>
-										<td className="p-3 text-gray-500">{report.date}</td>
-										<td className="p-3">
-											<span className={`px-3 py-1 rounded-full text-xs font-semibold shadow-sm ${
-												report.status === "Pending" ? "bg-yellow-100 text-yellow-800" :
-												report.status === "Reviewed" ? "bg-blue-100 text-blue-800" :
-												"bg-green-100 text-green-800"
-											}`}>
-												{report.status}
-											</span>
-										</td>
-										<td className="p-3">
-											{report.imageUrl ? (
-												<img src={report.imageUrl} alt="Billboard" className="w-20 h-14 object-cover rounded-lg border border-gray-200" />
-											) : (
-												<span className="inline-block w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-													<svg width="24" height="24" fill="none" stroke="#6b7280" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 2L15 8H9L12 2ZM12 22V8"/><circle cx="12" cy="16" r="2"/></svg>
-												</span>
-											)}
-										</td>
-									</tr>
-								))}
-							</tbody>
-						</table>
+						{renderReportTable({ reports: filteredReports, loading, error })}
 					</section>
 
-					{/* Map Section */}
-					<section className="md:w-1/3 bg-white rounded-xl shadow-sm p-4 flex flex-col items-center">
-						<h2 className="text-lg font-semibold mb-4 text-gray-800 tracking-tight">Flagged Billboards Map</h2>
-						<LeafletMap reports={filteredReports} />
+					{/* Map */}
+					<section className="md:w-1/3 bg-white rounded-xl shadow-sm p-4">
+						<h2 className="text-lg font-semibold mb-4">Map View</h2>
+						<div className="h-64 rounded-lg overflow-hidden">
+							<LeafletMap markers={mapMarkers} />
+						</div>
 					</section>
 				</div>
 			</main>
 		</div>
+	);
+}
+
+function renderReportTable({ reports, loading, error }) {
+	if (loading) return <div className="p-4 text-center">Loading...</div>;
+	if (error) return <div className="p-4 text-center text-red-500">{error}</div>;
+	if (reports.length === 0) return <div className="p-4 text-center text-gray-500">No reports found.</div>;
+
+	return (
+		<table className="min-w-full divide-y divide-gray-200">
+			<thead className="bg-gray-50">
+				<tr>
+					<th className="p-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Billboard_id</th>
+					<th className="p-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Report_id</th>
+
+					<th className="p-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Location</th>
+					<th className="p-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Violation Type</th>
+					<th className="p-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Date</th>
+					<th className="p-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Status</th>
+					<th className="p-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Image</th>
+				</tr>
+			</thead>
+			<tbody className="bg-white divide-y divide-gray-200">
+				{reports.map((report, idx) => (
+					<tr key={idx} className="hover:bg-gray-50 transition-colors">
+						<td className="p-3 text sm text-gray-700">{report.billboard_id}</td>
+						<td className="p-3 text sm text-gray-700">{report.report_id}</td>
+						<td className="p-3 text-sm text-gray-700">{report.location}</td>
+						<td className="p-3 text-sm text-gray-700">{report.reason}</td>
+						<td className="p-3 text-sm text-gray-700">{new Date(report.date).toLocaleDateString()}</td>
+						<td className="p-3 text-sm text-gray-700">
+							<span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${report.status === "Resolved" ? "bg-green-100 text-green-700" : report.status === "Reviewed" ? "bg-yellow-100 text-yellow-700" : "bg-red-100 text-red-700"}`}>
+								{report.status}
+							</span>
+						</td>
+						<td className="p-3 text-sm text-gray-700">
+							{report.image ? (
+								<a href={report.image} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+									View Image
+								</a>
+							) : (
+								<span className="text-gray-400">No Image</span>
+							)}
+						</td>
+					</tr>
+				))}
+			</tbody>
+		</table>
 	);
 }
