@@ -62,22 +62,22 @@ export default function Dashboard() {
 					FlagRush
 				</div>
 				<nav className="flex flex-col gap-3 text-sm">
-					<a href="#" className="flex items-center gap-2 px-3 py-2 rounded text-blue-700 bg-blue-50 font-medium">
+					<a href="/" className="flex items-center gap-2 px-3 py-2 rounded text-blue-700 bg-blue-50 font-medium">
 						<svg width="18" height="18" fill="none" stroke="#2563eb" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 13h2v-2H3v2zm4 0h2v-2H7v2zm4 0h2v-2h-2v2zm4 0h2v-2h-2v2zm4 0h2v-2h-2v2z"/></svg>
 						Dashboard
 					</a>
-					<a href="#" className="flex items-center gap-2 px-3 py-2 rounded hover:bg-gray-200 text-gray-700">
+					<a href="/report" className="flex items-center gap-2 px-3 py-2 rounded hover:bg-gray-200 text-gray-700">
 						<svg width="18" height="18" fill="none" stroke="#6b7280" strokeWidth="2" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
 						Reports
 					</a>
-					<a href="#" className="flex items-center gap-2 px-3 py-2 rounded hover:bg-gray-200 text-gray-700">
-						<svg width="18" height="18" fill="none" stroke="#6b7280" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
-						Map
-					</a>
-					<a href="#" className="flex items-center gap-2 px-3 py-2 rounded hover:bg-red-50 text-red-600">
-						<svg width="18" height="18" fill="none" stroke="#dc2626" strokeWidth="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
-						Logout
-					</a>
+					   <a href="/PermitManagementPage" className="flex items-center gap-2 px-3 py-2 rounded hover:bg-green-50 text-green-700">
+						   <svg width="18" height="18" fill="none" stroke="#16a34a" strokeWidth="2" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 12h8M8 16h8"/></svg>
+						   Permit Management
+					   </a>
+					   <a href="/FlaggedReportsPage" className="flex items-center gap-2 px-3 py-2 rounded hover:bg-yellow-50 text-yellow-700">
+						   <svg width="18" height="18" fill="none" stroke="#eab308" strokeWidth="2" viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/><path d="M8 8h8v8H8z"/></svg>
+						   Flagged Reports
+					   </a>
 				</nav>
 			</aside>
 
