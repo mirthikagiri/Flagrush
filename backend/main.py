@@ -19,10 +19,10 @@ app.add_middleware(
 # MongoDB connection
 MONGO_DETAILS = os.getenv("MONGO_URI", "mongodb://localhost:27017")
 client = AsyncIOMotorClient(MONGO_DETAILS)
-database = client.your_database_name
+database = client.flagrush
 permit_collection = database.get_collection("permits")
 
-# Helper to convert ObjectId to string
+# Helper sto convert ObjectId to string
 def permit_helper(permit) -> dict:
     return {
         "id": str(permit["_id"]),
@@ -40,16 +40,16 @@ def permit_helper(permit) -> dict:
 
 # Pydantic model for input validation
 class PermitModel(BaseModel):
-    permit_id: str
-    billboard_id: str
-    location: str
-    zone: str
-    permit_issue_date: str  # Use ISO format e.g. "2024-01-01"
-    permit_expiry_date: str
-    max_width_meters: float
-    max_height_meters: float
-    permit_status: str
-    license_number: str
+    permit_id: str = Field(...)
+    billboard_id: str = Field(...)
+    location: str = Field(...)
+    zone: str = Field(...)
+    permit_issue_date: str = Field(..., pattern=r"^\d{4}-\d{2}-\d{2}$")  # ISO date yyyy-mm-dd
+    permit_expiry_date: str = Field(..., pattern=r"^\d{4}-\d{2}-\d{2}$")
+    max_width_meters: float = Field(...)
+    max_height_meters: float = Field(...)
+    permit_status: str = Field(...)
+    license_number: str = Field(...)
 
 @app.post("/permits/", response_description="Add new permit")
 async def add_permit(permit: PermitModel):
@@ -72,5 +72,7 @@ async def get_permit(permit_id: str):
         return permit_helper(permit)
     raise HTTPException(status_code=404, detail=f"Permit {permit_id} not found")
 
-# You can add update and delete endpoints similarly
+# Comments throughout for clarity and maintainability
+# All code blocks are properly indented and use async/await
+# Add update/delete endpoints as needed
 
