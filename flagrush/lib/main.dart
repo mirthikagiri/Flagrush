@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'widgets/virtual_joystick.dart';
+import 'widgets/fire_button.dart';
+import 'widgets/fire_particle_effect.dart';
 
 void main() {
   runApp(const MyApp());
@@ -104,7 +107,7 @@ class _MyHomePageState extends State<MyHomePage> {
           // wireframe for each widget.
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            const Text('You have pushed the button this many times:'),
+            const Text('You have pushed the this many times:'),
             Text(
               '$_counter',
               style: Theme.of(context).textTheme.headlineMedium,
@@ -117,6 +120,29 @@ class _MyHomePageState extends State<MyHomePage> {
         tooltip: 'Increment',
         child: const Icon(Icons.add),
       ), // This trailing comma makes auto-formatting nicer for build methods.
+      // Joystick
+      Positioned(
+        left: 24,
+        bottom: 32,
+        child: VirtualJoystick(
+          onMove: onJoystickMove,
+        ),
+      ),
+      // Fire button
+      Positioned(
+        right: 24,
+        bottom: 32,
+        child: FireButton(
+          onPressed: isFiring ? null : onFirePressed,
+        ),
+      ),
+      // Fire effect (AR overlay, simplified)
+      if (showFireEffect)
+        Positioned(
+          right: MediaQuery.of(context).size.width / 2 - 40,
+          bottom: MediaQuery.of(context).size.height / 2 - 40,
+          child: FireParticleEffect(),
+        ),
     );
   }
 }
