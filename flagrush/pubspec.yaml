@@ -32,9 +32,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  ar_flutter_plugin: ^0.7.3
-  http: ^1.5.0
-  geolocator: 9.0.2
+  image_picker: ^1.0.4
 
 
   # The following adds the Cupertino Icons font to your application.
@@ -62,6 +60,8 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+  assets:
+    - assets/dragon/scene.gltf
 
   # To add assets to your application, add an assets section, like this:
   # assets:
@@ -93,6 +93,3 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
-flutter:
-  assets:
-    - assets/dragon/
