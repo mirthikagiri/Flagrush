@@ -1,0 +1,28 @@
+Billboard Detection Model - Roboflow Integration
+Overview
+This project integrates a computer vision model for detecting unauthorized or non-compliant billboards in urban environments. The detection model is hosted on Roboflow and referenced using the project ID:
+
+Roboflow Project ID: billboard-hsf7y-fdvti
+
+Due to the current plan limitations, this repository does not include the trained model weights directly. Instead, inference is performed by calling Roboflow's hosted API using the project ID for real-time predictions.
+
+How It Works
+Images or live video frames are sent from the client app or Unity environment to Roboflow’s inference API using the project ID.
+
+Roboflow processes the input and returns bounding boxes, labels, and confidence scores for detected billboards and their compliance status.
+
+This approach removes the need to manage and distribute the model files, reducing storage and deployment complexity.
+
+Unity Dragon Model Integration
+This project also incorporates the Unity Dragon Model for enhanced visualization and interaction within the Unity engine. The dragon model serves as a creative asset representing flagged billboards or warnings.
+
+Drive Link: https://drive.google.com/drive/folders/1Nzh9SR4MyMcT7kSQg8_OPrOlc4U8x-x4?usp=sharing
+
+You can control its appearance and animations using Unity scripts integrated with the detection results.
+
+License and Ethical Use
+This project complies with ethical AI use and data privacy standards.
+
+No publicly downloaded model weights are included here.
+
+The citizen data collected is anonymized and used solely for the purpose of detection and reporting.
